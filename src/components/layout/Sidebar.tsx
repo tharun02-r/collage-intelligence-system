@@ -19,7 +19,7 @@ import {
   PieChart as pieChart
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 
 interface SidebarProps {
@@ -29,6 +29,7 @@ interface SidebarProps {
 export function Sidebar({ role }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const getNavItems = () => {
     switch(role) {
@@ -131,7 +132,9 @@ export function Sidebar({ role }: SidebarProps) {
       </div>
       
       <div className="p-3 pb-6 shrink-0">
-         <button className={clsx(
+         <button 
+           onClick={() => router.push('/login')}
+           className={clsx(
             "flex items-center gap-3 px-3 py-2.5 w-full rounded-xl transition-colors text-slate-400 hover:text-alert-critical hover:bg-alert-critical/10",
             collapsed && "justify-center"
          )}>

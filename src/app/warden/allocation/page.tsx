@@ -3,7 +3,7 @@
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { BedDouble, CheckCircle2, Search, UserPlus, MapPin, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { clsx } from "clsx";
 
 const B_BLOCK_FLOORS = [
@@ -12,14 +12,103 @@ const B_BLOCK_FLOORS = [
   { floor: 3, capacity: 40, occupied: 37 },
 ];
 
-const mockUnallocatedStudents = [
-  { id: "S-20199", name: "Ravi Shankar", course: "B.Tech Year 1", status: "Pending Allocation" },
-  { id: "S-20551", name: "Ananya Gupta", course: "B.Sc Physics", status: "Transfer Requested" },
-  { id: "S-20882", name: "Mohammed Ali", course: "M.Tech", status: "Waitlisted" }
-];
-
 export default function WardenAllocationPage() {
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [unallocatedStudents, setUnallocatedStudents] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Real floor and room data could be fetched here, using mock structure for visual representation but true assignments will work.
+  const [rooms, setRooms] = useState<any[]>([]);
+
+  // Function to load initial data
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [unallocatedRes, roomsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/hostel/unallocated'),
+        fetch('http://localhost:5000/api/analytics/hostel')
+      ]);
+
+      if (unallocatedRes.ok) {
+        setUnallocatedStudents(await unallocatedRes.json());
+      }
+      if (roomsRes.ok) {
+        setRooms(await roomsRes.json());
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleAllocate = async () => {
+    if (!selectedStudent || !selectedRoom) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/hostel/allocate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedStudent.id, room: selectedRoom, block: 'Block B' })
+      });
+
+      if (res.ok) {
+        // Clear selection, refresh data
+        setSelectedStudent(null);
+        setSelectedRoom(null);
+        await fetchData();
+        // Give a little visual feedback (could replace with proper toast)
+        alert('Allocation Successful!');
+      } else {
+        const error = await res.json();
+        alert(`Allocation failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.log('Error allocating:', error);
+    }
+  };
+
+  const handleVacate = async (roomNo: string) => {
+    // Determine which user is in this room. In a real scenario, you'd fetch the specific allocation list to find the userId.
+    // For this simulation given our current API limits without a dedicated get-room-occupants route, 
+    // we'll ask the backend for all allocations to find the matching user ID for this room.
+    
+    try {
+      const allocsRes = await fetch('http://localhost:5000/api/hostel/allocations');
+      if (!allocsRes.ok) throw new Error("Could not fetch allocations");
+      
+      const allocations = await allocsRes.json();
+      const occupant = allocations.find((a: any) => a.room === roomNo && a.block === 'Block B');
+      
+      if (!occupant) {
+          alert('No specific student record found linked to this room.');
+          return;
+      }
+
+      if(!confirm(`Are you sure you want to vacate ${occupant.user?.name} from room ${roomNo}?`)) return;
+
+      const vacateRes = await fetch('http://localhost:5000/api/hostel/vacate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: occupant.userId })
+      });
+
+      if (vacateRes.ok) {
+          setSelectedRoom(null);
+          await fetchData();
+          alert('Room successfully vacated!');
+      } else {
+          alert('Failed to vacate room.');
+      }
+    } catch (error) {
+        console.error("Vacate Error:", error);
+    }
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
@@ -68,23 +157,48 @@ export default function WardenAllocationPage() {
             <Card>
                <CardHeader title="Pending Allocations" subtitle="Students awaiting room assignment" />
                <div className="mt-4 space-y-2">
-                  {mockUnallocatedStudents.map((student, i) => (
-                     <div key={i} className="p-3 bg-surface-darker border border-white/5 rounded-xl hover:border-accent-purple/30 transition-colors cursor-pointer group">
-                        <div className="flex justify-between items-start mb-1">
-                           <span className="font-semibold text-white group-hover:text-accent-purple transition-colors">{student.name}</span>
-                           <span className="text-xs font-mono text-slate-500">{student.id}</span>
+                  {isLoading ? (
+                     <p className="text-sm text-slate-400 p-4">Loading students...</p>
+                  ) : unallocatedStudents.length === 0 ? (
+                     <p className="text-sm text-slate-400 p-4">All students are allocated.</p>
+                  ) : (
+                     unallocatedStudents.map((student, i) => (
+                        <div key={i} className={clsx(
+                              "p-3 border rounded-xl transition-colors cursor-pointer group",
+                              selectedStudent?.id === student.id 
+                                 ? "bg-accent-teal/10 border-accent-teal" 
+                                 : "bg-surface-darker border-white/5 hover:border-accent-purple/30"
+                           )}
+                           onClick={() => setSelectedStudent(student)}
+                        >
+                           <div className="flex justify-between items-start mb-1">
+                              <span className={clsx("font-semibold transition-colors", 
+                                 selectedStudent?.id === student.id ? "text-accent-teal" : "text-white group-hover:text-accent-purple"
+                              )}>
+                                 {student.name}
+                              </span>
+                              <span className="text-xs font-mono text-slate-500">{student.id}</span>
+                           </div>
+                           <p className="text-xs text-slate-400 mb-3">{student.course}</p>
+                           <div className="flex justify-between items-center">
+                              <Badge variant={student.status.includes('Pending') ? 'warning' : 'info'} className="text-[10px] scale-90 origin-left border-transparent">
+                                 {student.status}
+                              </Badge>
+                              <button 
+                                 className={clsx(
+                                    "text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5",
+                                    selectedStudent?.id === student.id
+                                       ? "bg-accent-teal text-surface-dark hover:bg-accent-teal/90"
+                                       : "bg-surface-dark border border-white/10 hover:bg-accent-teal/20 hover:text-accent-teal text-slate-300"
+                                 )}
+                              >
+                                 {selectedStudent?.id === student.id ? <CheckCircle2 className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />} 
+                                 {selectedStudent?.id === student.id ? 'Selected' : 'Assign'}
+                              </button>
+                           </div>
                         </div>
-                        <p className="text-xs text-slate-400 mb-3">{student.course}</p>
-                        <div className="flex justify-between items-center">
-                           <Badge variant={student.status.includes('Pending') ? 'warning' : 'info'} className="text-[10px] scale-90 origin-left border-transparent">
-                              {student.status}
-                           </Badge>
-                           <button className="text-xs font-medium bg-surface-dark border border-white/10 hover:bg-accent-teal/20 hover:text-accent-teal text-slate-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
-                              <UserPlus className="w-3.5 h-3.5" /> Assign
-                           </button>
-                        </div>
-                     </div>
-                  ))}
+                     ))
+                  )}
                </div>
             </Card>
          </div>
@@ -116,29 +230,40 @@ export default function WardenAllocationPage() {
                         {/* Room generation map */}
                         {Array.from({length: 12}).map((_, idx) => {
                            const roomNumber = `30${idx + 1}`;
-                           const isAvailable = idx === 3 || idx === 8;
+                           
+                           // Using live room data if available
+                           const roomData = rooms.find(r => r.roomNo === roomNumber && r.block === 'Block B');
+                           
+                           // If backend data is loaded, use it. Otherwise fallback to mock pattern
+                           const isAvailable = roomData ? roomData.status === 'Available' : (idx === 3 || idx === 8);
                            const isSelected = selectedRoom === roomNumber;
 
                            return (
                               <button 
                                  key={idx}
-                                 onClick={() => isAvailable && setSelectedRoom(roomNumber)}
-                                 disabled={!isAvailable}
+                                 onClick={() => setSelectedRoom(roomNumber)}
                                  className={clsx(
-                                    "h-16 rounded-xl border-2 flex items-center justify-center transition-all relative overflow-hidden",
-                                    isAvailable ? "hover:scale-105 cursor-pointer" : "opacity-50 cursor-not-allowed",
+                                    "h-16 rounded-xl border-2 flex flex-col items-center justify-center transition-all relative overflow-hidden group cursor-pointer",
+                                    isAvailable ? "hover:scale-105" : "hover:border-rose-500/50",
                                     isSelected ? "bg-accent-teal/20 border-accent-teal shadow-[0_0_15px_rgba(13,148,136,0.2)]" : 
                                     isAvailable ? "bg-surface-dark border-accent-teal/50 hover:bg-accent-teal/10 hover:border-accent-teal" : 
                                     "bg-surface-darker border-white/5"
                                  )}
                               >
-                                 {isSelected && <div className="absolute top-1 right-1"><CheckCircle2 className="w-3 h-3 text-accent-teal" /></div>}
+                                 {isSelected && isAvailable && <div className="absolute top-1 right-1"><CheckCircle2 className="w-3 h-3 text-accent-teal" /></div>}
                                  <span className={clsx(
                                     "font-mono font-medium",
-                                    isSelected ? "text-accent-teal" : isAvailable ? "text-slate-300" : "text-slate-600"
+                                    isSelected ? "text-accent-teal" : isAvailable ? "text-slate-300" : "text-slate-600 group-hover:text-rose-400"
                                  )}>
                                     {roomNumber}
                                  </span>
+                                 
+                                 {/* Hover action for occupied rooms */}
+                                 {isSelected && !isAvailable && (
+                                     <div className="absolute inset-0 bg-surface-darker/90 flex items-center justify-center backdrop-blur-sm">
+                                         <span className="text-xs font-bold text-rose-500 uppercase tracking-wider">Vacate</span>
+                                     </div>
+                                 )}
                               </button>
                            );
                         })}
@@ -150,24 +275,51 @@ export default function WardenAllocationPage() {
                   {selectedRoom ? (
                      <div className="flex items-center gap-3">
                         <Badge variant="normal">Room {selectedRoom} Selected</Badge>
-                        <span className="text-sm text-slate-400">Ready for allocation workflow.</span>
+                        <span className="text-sm text-slate-400">
+                            {(() => {
+                                const roomData = rooms.find(r => r.roomNo === selectedRoom && r.block === 'Block B');
+                                const isAvail = roomData ? roomData.status === 'Available' : true;
+                                if (!isAvail) return "Room is currently occupied. You can vacate it.";
+                                if (!selectedStudent) return "Select a student from the pending list to allocate.";
+                                return `Ready to allocate ${selectedStudent.name}.`;
+                            })()}
+                        </span>
                      </div>
                   ) : (
                      <div className="flex items-center gap-2 text-sm text-amber-500">
-                        <AlertCircle className="w-4 h-4" /> Please select an available room from the map.
+                        <AlertCircle className="w-4 h-4" /> Please select a room from the map.
                      </div>
                   )}
-                  <button 
-                     disabled={!selectedRoom}
-                     className={clsx(
-                        "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg",
-                        selectedRoom 
-                           ? "bg-accent-teal text-surface-dark hover:bg-accent-teal/90 shadow-accent-teal/20 hover:shadow-accent-teal/40" 
-                           : "bg-surface-dark border border-white/10 text-slate-500 cursor-not-allowed shadow-none"
-                     )}
-                  >
-                     Confirm Allocation
-                  </button>
+                  {(() => {
+                      const roomData = rooms.find(r => r.roomNo === selectedRoom && r.block === 'Block B');
+                      const isAvail = roomData ? roomData.status === 'Available' : true;
+                      
+                      if (!isAvail && selectedRoom) {
+                          return (
+                            <button 
+                                onClick={() => handleVacate(selectedRoom)}
+                                className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white shadow-none"
+                            >
+                                Vacate Room
+                            </button>
+                          );
+                      }
+
+                      return (
+                         <button 
+                            disabled={!selectedRoom || !selectedStudent}
+                            onClick={handleAllocate}
+                            className={clsx(
+                               "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg",
+                               selectedRoom && selectedStudent
+                                  ? "bg-accent-teal text-surface-dark hover:bg-accent-teal/90 shadow-accent-teal/20 hover:shadow-accent-teal/40" 
+                                  : "bg-surface-dark border border-white/10 text-slate-500 cursor-not-allowed shadow-none"
+                            )}
+                         >
+                            Confirm Allocation
+                         </button>
+                      );
+                  })()}
                </div>
             </Card>
          </div>

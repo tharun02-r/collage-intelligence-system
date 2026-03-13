@@ -9,18 +9,59 @@ export default function WardenDashboard() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const [allocations, setAllocations] = useState<any[]>([]);
+  const [reallocateModalOpen, setReallocateModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [newRoomNo, setNewRoomNo] = useState("");
+
+  const fetchHostelData = () => {
+    // 1. Fetch Room Totals/Occupancy
     fetch('http://localhost:5000/api/analytics/hostel')
       .then(res => res.json())
       .then(data => {
         setRooms(data);
+      })
+      .catch(err => console.error("Failed to fetch hostel data:", err));
+
+    // 2. Fetch Live Student Allocations
+    fetch('http://localhost:5000/api/hostel/allocations')
+      .then(res => res.json())
+      .then(data => {
+        setAllocations(data);
         setLoading(false);
       })
-      .catch(err => {
-        console.error("Failed to fetch hostel data:", err);
-        setLoading(false);
-      });
+      .catch(err => console.error("Failed to fetch allocations data:", err));
+  };
+
+  useEffect(() => {
+    fetchHostelData();
   }, []);
+
+  const handleReallocate = async () => {
+    if (!selectedStudent || !newRoomNo) return;
+    
+    try {
+      const res = await fetch('http://localhost:5000/api/hostel/reallocate', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: selectedStudent.userId,
+          newRoomBlock: 'Block B',
+          newRoomNo: newRoomNo
+        })
+      });
+
+      if (res.ok) {
+        setReallocateModalOpen(false);
+        setNewRoomNo("");
+        fetchHostelData(); // Refresh table & KPIs
+      } else {
+         console.error("Reallocation failed.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Calculate generic occupancy stats for the dashboard
   const blockBRooms = rooms.filter(r => r.block === 'Block B');
@@ -88,9 +129,23 @@ export default function WardenDashboard() {
                <BedDouble className="w-5 h-5 text-blue-500" />
              </div>
            </div>
-           <p className="text-sm mt-4 text-slate-400">
-             {loading ? 'Calculating...' : `${occupiedRooms} / ${totalRooms} rooms (Block B)`}
-           </p>
+           
+           <div className="mt-4 flex flex-col gap-1">
+             <div className="flex justify-between items-center text-xs">
+               <span className="text-slate-400">Filled Rooms:</span>
+               <span className="text-white font-mono">{loading ? '--' : occupiedRooms}</span>
+             </div>
+             <div className="flex justify-between items-center text-xs">
+               <span className="text-slate-400">Vacant Rooms:</span>
+               <span className="text-accent-teal font-mono font-bold">{loading ? '--' : totalRooms - occupiedRooms}</span>
+             </div>
+             <div className="w-full bg-surface-darker rounded-full h-1.5 mt-1 border border-white/5">
+                <div 
+                  className="bg-blue-500 h-1.5 rounded-full" 
+                  style={{ width: `${occupancyRate}%` }} 
+                />
+             </div>
+           </div>
         </Card>
       </div>
 
@@ -149,48 +204,50 @@ export default function WardenDashboard() {
       {/* Hostel Roster Table */}
       <Card className="overflow-hidden flex flex-col">
          <div className="flex justify-between items-center mb-4">
-            <CardHeader title="Live Hostel Roster - Block B" subtitle="Current status of all 120 assigned occupants" />
+            <CardHeader title="Live Hostel Roster - Block B" subtitle={`Current status of ${allocations.length} signed occupants`} />
             <div className="relative w-64 pr-4">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-[10px] text-slate-500" />
               <input type="text" placeholder="Search Room or ID..." className="w-full bg-surface-dark border border-white/10 rounded-lg pl-9 pr-3 py-1.5 text-sm text-white focus:outline-none focus:border-amber-500/50" />
             </div>
          </div>
          <div className="flex-1 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[800px]">
                <thead>
                   <tr className="border-y border-white/5 bg-surface-darker/50 text-xs uppercase tracking-wider text-slate-500">
                      <th className="px-4 py-3 font-medium">Room</th>
                      <th className="px-4 py-3 font-medium">Student Name</th>
                      <th className="px-4 py-3 font-medium">Campus ID</th>
-                     <th className="px-4 py-3 font-medium">Phone No.</th>
                      <th className="px-4 py-3 font-medium">Status / Location</th>
+                     <th className="px-4 py-3 font-medium text-right relative right-2">Actions</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/5 text-sm">
-                  {[
-                     { room: '101', name: 'Rahul Desai', id: 'S-18392', phone: '+91 98765 43210', status: 'Present', loc: 'In Room', badge: 'normal' },
-                     { room: '114', name: 'Vikram Singh', id: 'S-19283', phone: '+91 87654 32109', status: 'Flagged', loc: 'Night Distress', badge: 'warning' },
-                     { room: '205', name: 'Arun Kumar', id: 'S-19045', phone: '+91 76543 21098', status: 'Out', loc: 'Library', badge: 'purple' },
-                     { room: '302', name: 'Anjali Verma', id: 'S-1042', phone: '+91 65432 10987', status: 'SOS Active', loc: 'Room 302', badge: 'critical' },
-                     { room: '310', name: 'Sneha Patel', id: 'S-18821', phone: '+91 54321 09876', status: 'Present', loc: 'Mess Hall', badge: 'normal' },
-                  ].map((student, i) => (
-                     <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="px-4 py-3 font-mono font-medium text-amber-500">{student.room}</td>
-                        <td className="px-4 py-3 font-medium text-white">{student.name}</td>
-                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{student.id}</td>
-                        <td className="px-4 py-3 text-slate-300">
-                           <div className="flex items-center gap-2">
-                              <Phone className="w-3.5 h-3.5 text-slate-500" /> {student.phone}
-                           </div>
-                        </td>
+                  {loading ? (
+                    <tr><td colSpan={5} className="p-4 text-center text-slate-400">Loading roster...</td></tr>
+                  ) : allocations.map((allocation) => (
+                     <tr key={allocation.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-4 py-3 font-mono font-medium text-amber-500">{allocation.room}</td>
+                        <td className="px-4 py-3 font-medium text-white">{allocation.user?.name}</td>
+                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{allocation.userId}</td>
                         <td className="px-4 py-3">
                            <div className="flex items-center gap-2">
-                              {student.badge === 'normal' && <CheckCircle2 className="w-4 h-4 text-accent-teal" />}
-                              {student.badge === 'warning' && <Moon className="w-4 h-4 text-alert-warning" />}
-                              {student.badge === 'critical' && <AlertTriangle className="w-4 h-4 text-alert-critical animate-pulse" />}
-                              {student.badge === 'purple' && <MapPin className="w-4 h-4 text-accent-purple" />}
-                              <span className="text-slate-300 text-xs">{student.loc}</span>
+                              {allocation.user?.status === 'Active' ? (
+                                <><CheckCircle2 className="w-4 h-4 text-accent-teal" /><span className="text-slate-300 text-xs">Present (In Block)</span></>
+                              ) : (
+                                <><MapPin className="w-4 h-4 text-slate-500" /><span className="text-slate-400 text-xs text-italic">Away</span></>
+                              )}
                            </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                           <button 
+                             onClick={() => {
+                               setSelectedStudent(allocation);
+                               setReallocateModalOpen(true);
+                             }}
+                             className="text-xs bg-surface-dark border border-white/10 hover:border-amber-500/50 text-slate-300 px-3 py-1.5 rounded-md transition-colors mr-2"
+                           >
+                              Reallocate
+                           </button>
                         </td>
                      </tr>
                   ))}
@@ -198,6 +255,53 @@ export default function WardenDashboard() {
             </table>
          </div>
       </Card>
+
+      {/* Reallocation Modal */}
+      {reallocateModalOpen && selectedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md border-amber-500/30 p-6 animate-in zoom-in-95 duration-200">
+             <h3 className="text-xl font-heading font-semibold text-white mb-2">Reallocate Student</h3>
+             <p className="text-sm text-slate-400 mb-6">
+                Move <strong className="text-white">{selectedStudent.user?.name}</strong> ({selectedStudent.userId}) from Room {selectedStudent.room} to a new available room.
+             </p>
+             
+             <div className="space-y-4">
+               <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase">Target Block</label>
+                  <input type="text" value="Block B" disabled className="mt-1 w-full bg-surface-dark border border-white/5 rounded-lg px-3 py-2 text-sm text-slate-500" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-accent-teal uppercase">New Room No.</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 104"
+                    value={newRoomNo}
+                    onChange={(e) => setNewRoomNo(e.target.value)}
+                    className="mt-1 w-full bg-surface-dark border border-accent-teal/30 focus:border-accent-teal rounded-lg px-3 py-2 text-sm text-white focus:outline-none" 
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 pl-1">Input exactly the 3-digit room number to assign.</p>
+               </div>
+               
+               <div className="pt-4 flex gap-3">
+                  <button 
+                    onClick={() => setReallocateModalOpen(false)}
+                    className="flex-1 bg-surface-dark hover:bg-white/5 border border-white/10 text-slate-300 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleReallocate}
+                    disabled={!newRoomNo}
+                    className="flex-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-500 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Confirm Move
+                  </button>
+               </div>
+             </div>
+          </Card>
+        </div>
+      )}
+
     </div>
   );
 }

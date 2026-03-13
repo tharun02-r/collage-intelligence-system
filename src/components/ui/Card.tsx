@@ -23,7 +23,7 @@ export function Card({ children, className, noPadding = false }: CardProps) {
   );
 }
 
-export function CardHeader({ title, subtitle, action }: { title: string, subtitle?: string, action?: ReactNode }) {
+export function CardHeader({ title, subtitle, action }: { title: ReactNode, subtitle?: string, action?: ReactNode }) {
   return (
     <div className="flex items-start justify-between mb-4">
       <div>

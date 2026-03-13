@@ -4,7 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from "recharts";
-import { ShieldAlert, ChevronLeft, CalendarClock, Beaker, Wifi, BookOpen, UserMinus, FileText, HeartPulse } from "lucide-react";
+import { ShieldAlert, ChevronLeft, CalendarClock, Beaker, Wifi, BookOpen, UserMinus, FileText, HeartPulse, BrainCircuit, Play } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -138,6 +138,61 @@ export default function StudentRiskProfile() {
                     </div>
                  </div>
 
+              </div>
+           </Card>
+        </div>
+
+        {/* Explainable AI with Smart Intervention Recommendations */}
+        <div className="grid grid-cols-1 mt-6">
+           <Card className="border-accent-purple/50 bg-accent-purple/5 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-64 h-64 bg-accent-purple/10 rounded-full blur-3xl" />
+              <CardHeader 
+                 title={
+                    <span className="flex items-center gap-2 text-white">
+                       <BrainCircuit className="w-5 h-5 text-accent-purple" /> 
+                       Explainable AI & Smart Interventions
+                    </span>
+                 } 
+                 subtitle="AI-driven contextual analysis and recommended actions based on historical + real-time markers" 
+              />
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+                 {/* Risk Level */}
+                 <div className="bg-surface-dark border border-white/5 rounded-xl p-4 flex flex-col justify-center items-center text-center">
+                    <p className="text-sm text-slate-400 font-medium mb-2 uppercase tracking-wide">Risk Level</p>
+                    <Badge variant="critical" className="text-lg py-1 px-4 animate-pulse shadow-[0_0_15px_rgba(255,51,102,0.4)]">High Risk</Badge>
+                 </div>
+                 
+                 {/* Reason */}
+                 <div className="bg-surface-dark border border-white/5 rounded-xl p-4 flex flex-col justify-center">
+                    <p className="text-sm text-slate-400 font-medium mb-2 uppercase tracking-wide flex items-center gap-2">
+                       <FileText className="w-4 h-4" /> Principal Reason Matrix
+                    </p>
+                    <p className="text-sm text-white leading-relaxed">
+                       <span className="text-alert-warning font-semibold">Attendance dropped by 30%</span> over the last 14 days, and <span className="text-alert-critical font-semibold">two failed subjects</span> detected in recent formative assessments (MATH-301, PHY-201).
+                    </p>
+                 </div>
+
+                 {/* Suggested Action */}
+                 <div className="bg-surface-dark border border-accent-teal/30 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                       <p className="text-sm text-accent-teal font-medium mb-2 uppercase tracking-wide flex items-center gap-2">
+                          <Play className="w-4 h-4 fill-accent-teal" /> Suggested Actions
+                       </p>
+                       <ul className="space-y-2 text-sm text-white">
+                          <li className="flex items-start gap-2">
+                             <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-accent-teal flex-shrink-0" />
+                             Schedule urgent 1-on-1 counseling session.
+                          </li>
+                          <li className="flex items-start gap-2">
+                             <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-accent-teal flex-shrink-0" />
+                             Assign dedicated academic mentor for MATH & PHY.
+                          </li>
+                       </ul>
+                    </div>
+                    <button className="mt-4 w-full bg-accent-teal/20 hover:bg-accent-teal/40 text-accent-teal border border-accent-teal/50 py-2 rounded-lg text-sm font-bold transition-colors">
+                       Deploy Intervention Plan
+                    </button>
+                 </div>
               </div>
            </Card>
         </div>
