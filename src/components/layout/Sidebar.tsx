@@ -60,8 +60,8 @@ export function Sidebar({ role }: SidebarProps) {
       case "socc":
         return [
           { icon: ShieldAlert, label: "Operations Center", href: "/socc" },
-          { icon: Radio, label: "Drone Feeds", href: "#" },
-          { icon: Hexagon, label: "Virtual Fence", href: "#" },
+          { icon: Radio, label: "Drone Feeds", href: "/socc/drones" },
+          { icon: Hexagon, label: "Virtual Fence", href: "/socc/fence" },
           { icon: Settings, label: "Settings", href: "/socc/settings" },
         ];
       case "warden":
@@ -73,9 +73,9 @@ export function Sidebar({ role }: SidebarProps) {
       case "admin":
         return [
           { icon: Activity, label: "Command Center", href: "/admin" },
-          { icon: ShieldAlert, label: "Security Feeds", href: "#" },
-          { icon: Database, label: "Audit Logs", href: "#" },
-          { icon: Users, label: "User Directory", href: "#" },
+          { icon: ShieldAlert, label: "Security Feeds", href: "/admin/security" },
+          { icon: Database, label: "Audit Logs", href: "/admin/audit" },
+          { icon: Users, label: "User Directory", href: "/admin/users" },
           { icon: Settings, label: "Settings", href: "/admin/settings" },
         ];
       default:
