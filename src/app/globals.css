@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Colors */
+  --color-background: #0D1B3E; /* Deep Navy */
+  --color-foreground: #E2E8F0; /* Slate 200 */
+  
+  --color-surface-dark: #1F2937; /* Charcoal */
+  --color-surface-darker: #111827; /* Darker Charcoal */
+  
+  /* Accents */
+  --color-accent-teal: #0D9488;
+  --color-accent-purple: #8B5CF6; /* AI elements */
+  
+  /* Alerts */
+  --color-alert-critical: #EF4444; /* Red */
+  --color-alert-warning: #F59E0B; /* Amber */
+  --color-alert-normal: #10B981; /* Green */
+  
+  /* Typography */
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  /* Borders & Radius */
+  --radius-xl: 12px;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  /* Apply dark futuristic look globally */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+
+* {
+  box-sizing: border-box;
+}

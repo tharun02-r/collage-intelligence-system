@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id // Campus ID like S-1042 or F-8810
+  name      String
+  role      String   // student, counselor, faculty, warden, admin, socc, parent
+  password  String   // Mock password for demo auth
+  status    String   @default("Active") // Active, Away, Flagged, etc.
+  
+  // Relations
+  allocation HostelAllocation?
+  logs       CampusMindLog[]
+  profile    StudentProfile?
+}
+
+model HostelAllocation {
+  id        String   @id @default(cuid())
+  room      String   // e.g. "302"
+  block     String   @default("Block B")
+  
+  // Relations
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model CampusMindLog {
+  id        String   @id @default(cuid())
+  content   String
+  sentiment String   // e.g. "Anxious", "Neutral"
+  date      DateTime @default(now())
+  
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model StudentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  course    String   @default("B.Tech Computer Science")
+  batch     String   @default("2024")
+  
+  attendance Attendance[]
+  academics  AcademicPerformance[]
+  riskScore  RiskScore?
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   StudentProfile @relation(fields: [profileId], references: [id])
+  date      DateTime @default(now())
+  status    String   // Present, Absent, Late
+  courseRef String   // ID or name of the course
+}
+
+model AcademicPerformance {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     StudentProfile @relation(fields: [profileId], references: [id])
+  term        String
+  subject     String
+  grade       Float    // E.g., 85.5
+  assignments Int      // Percentage of assignments submitted
+}
+
+model RiskScore {
+  id            String   @id @default(cuid())
+  profileId     String   @unique
+  profile       StudentProfile @relation(fields: [profileId], references: [id])
+  score         Float    // 0-100 indicating risk probability
+  level         String   // Low, Medium, High
+  lastCalculated DateTime @default(now())
+  intervention  String?  // Suggested AI action
+}
+
+model ResourceUsage {
+  id        String   @id @default(cuid())
+  building  String
+  type      String   // Electricity, Water, HVAC
+  value     Float    // Usage metric
+  unit      String   // kWh, Liters
+  timestamp DateTime @default(now())
+}
+
+model HostelRoom {
+  id        String   @id @default(cuid())
+  block     String
+  roomNo    String
+  capacity  Int      @default(2)
+  occupancy Int      @default(0)
+  status    String   @default("Available") // Available, Full, Maintenance
+}
