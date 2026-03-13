@@ -16,6 +16,7 @@ import {
   Hexagon,
   HeartPulse,
   Database,
+  UserCheck,
   PieChart as pieChart
 } from "lucide-react";
 import Link from "next/link";
@@ -39,6 +40,7 @@ export function Sidebar({ role }: SidebarProps) {
           { icon: Users, label: "Student Roster", href: "/counselor/roster" },
           { icon: MessageSquare, label: "CampusMind Logs", href: "/counselor/logs" },
           { icon: FileText, label: "Intervention Reports", href: "/counselor/reports" },
+          { icon: Settings, label: "Settings", href: "/counselor/settings" },
         ];
       case "student":
         return [
@@ -51,19 +53,22 @@ export function Sidebar({ role }: SidebarProps) {
         return [
           { icon: LayoutDashboard, label: "Observation Deck", href: "/faculty" },
           { icon: Users, label: "My Classes", href: "/faculty/classes" },
+          { icon: UserCheck, label: "Take Attendance", href: "/faculty/attendance" },
           { icon: FileText, label: "Academic Reports", href: "/faculty/reports" },
+          { icon: Settings, label: "Settings", href: "/faculty/settings" },
         ];
       case "socc":
         return [
           { icon: ShieldAlert, label: "Operations Center", href: "/socc" },
           { icon: Radio, label: "Drone Feeds", href: "#" },
           { icon: Hexagon, label: "Virtual Fence", href: "#" },
+          { icon: Settings, label: "Settings", href: "/socc/settings" },
         ];
       case "warden":
         return [
           { icon: Activity, label: "Hostel View", href: "/warden" },
           { icon: BedDouble, label: "Room Allocations", href: "/warden/allocation" },
-          { icon: Settings, label: "Settings", href: "#" },
+          { icon: Settings, label: "Settings", href: "/warden/settings" },
         ];
       case "admin":
         return [
@@ -71,10 +76,12 @@ export function Sidebar({ role }: SidebarProps) {
           { icon: ShieldAlert, label: "Security Feeds", href: "#" },
           { icon: Database, label: "Audit Logs", href: "#" },
           { icon: Users, label: "User Directory", href: "#" },
+          { icon: Settings, label: "Settings", href: "/admin/settings" },
         ];
       default:
         return [
           { icon: LayoutDashboard, label: "Dashboard", href: `/${role}` },
+          { icon: Settings, label: "Settings", href: `/${role}/settings` },
         ];
     }
   };

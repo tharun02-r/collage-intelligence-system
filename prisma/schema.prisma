@@ -63,6 +63,7 @@ model Attendance {
   date      DateTime @default(now())
   status    String   // Present, Absent, Late
   courseRef String   // ID or name of the course
+  notes     String?  // Optional notes regarding the status
 }
 
 model AcademicPerformance {
